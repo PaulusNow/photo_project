@@ -1,0 +1,56 @@
+services:
+  app:
+    build: .
+    container_name: photo-studio
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - photo-studio-network
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+    
+  web-server:
+    image: nginx:alpine
+    container_name: photo-studio-webserver
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - photo-studio-network
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: photo-studio-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_USER=${DB_USERNAME}
+    volumes:
+      - photo-studio-data:/var/lib/mysql
+    networks:
+      - photo-studio-network
+    ports:
+      - "3306:3306"
+
+networks:
+  photo-studio-network:
+    driver: bridge
+
+# Volumes
+volumes:
+  photo-studio-data:
+    driver: local
